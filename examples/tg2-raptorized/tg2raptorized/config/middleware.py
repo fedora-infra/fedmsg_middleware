@@ -4,7 +4,7 @@
 from tg2raptorized.config.app_cfg import base_config
 from tg2raptorized.config.environment import load_environment
 
-import raptorizemw
+import fedmsg_middleware
 
 __all__ = ['make_app']
 
@@ -34,8 +34,13 @@ def make_app(global_conf, full_stack=True, **app_conf):
    
     """
     app = make_base_app(global_conf, full_stack=True, **app_conf)
-    
-    # Wrap your base TurboGears 2 application with custom middleware here
-    app = raptorizemw.make_middleware(app)
-    
+
+    from moksha.wsgi.middleware import make_moksha_middleware
+    wrap_app = lambda app: make_moksha_middleware(
+        fedmsg_middleware.make_middleware(app),
+        app_conf,
+    )
+    app = make_base_app(global_conf, full_stack=True,
+                        wrap_app=wrap_app, **app_conf)
+
     return app

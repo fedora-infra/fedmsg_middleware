@@ -5,11 +5,11 @@ f = open('README.rst')
 long_description = f.read()
 f.close()
 
-version = '0.2.0'
+version = '0.0.1'
 
-setup(name='raptorizemw',
+setup(name='fedmsg_middleware',
       version=version,
-      description="Every WSGI app is better with a raptor.",
+      description="WSGI middleware for display fedmsg messages.",
       long_description=long_description,
       classifiers=[
           'Development Status :: 4 - Beta',
@@ -17,11 +17,10 @@ setup(name='raptorizemw',
           'Intended Audience :: Developers',
           'License :: OSI Approved :: MIT License',
       ],
-      keywords='raptor raptorize hilarity',
       author='Ralph Bean',
-      author_email='ralph.bean@gmail.com',
-      url='http://github.com/ralphbean/raptorizemw',
-      license='MIT',
+      author_email='rbean@redhat.com',
+      url='http://github.com/ralphbean/fedmsg_middleware',
+      license='LGPLv2+',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
@@ -29,10 +28,11 @@ setup(name='raptorizemw',
           'webob',
           'weberror',
           'BeautifulSoup<4.0a1',
+          'moksha.wsgi',
       ],
       entry_points="""
       [paste.filter_app_factory]
-      middleware = raptorizemw:make_middleware
-      main = raptorizemw:make_middleware
+      middleware = fedmsg_middleware:make_middleware
+      main = fedmsg_middleware:make_middleware
       """,
       )
