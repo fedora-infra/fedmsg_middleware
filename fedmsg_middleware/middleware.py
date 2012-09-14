@@ -1,25 +1,13 @@
 
 import BeautifulSoup
-import datetime
 import webob
 
 from moksha.common.lib.helpers import get_moksha_appconfig
+from moksha.wsgi.widgets.api import get_moksha_socket
+from moksha.wsgi.widgets.api import LiveWidget
+from tw2.jqplugins.gritter import gritter_resources
 
 truthy = frozenset(('t', 'true', 'y', 'yes', 'on', '1'))
-
-
-def asbool(s):
-    """ Return the boolean value ``True`` if the case-lowered value of string
-    input ``s`` is any of ``t``, ``true``, ``y``, ``on``, or ``1``, otherwise
-    return the boolean value ``False``.  If ``s`` is the value ``None``,
-    return ``False``.  If ``s`` is already one of the boolean values ``True``
-    or ``False``, return it."""
-    if s is None:
-        return False
-    if isinstance(s, bool):
-        return s
-    s = str(s).strip()
-    return s.lower() in truthy
 
 
 class FedmsgMiddleware(object):
@@ -71,12 +59,10 @@ class FedmsgMiddleware(object):
         if not soup.html.head:
             soup.html.insert(0, BeautifulSoup.Tag(soup, "head"))
 
-
         def add_payload(payload):
             payload = BeautifulSoup.BeautifulSoup(payload)
             soup.html.body.insert(len(soup.html.body), payload)
 
-        from moksha.wsgi.widgets.api import get_moksha_socket
         socket = get_moksha_socket(self.config)
 
         add_payload(PopupNotification.display())
@@ -85,18 +71,26 @@ class FedmsgMiddleware(object):
         resp.body = str(soup.prettify())
         return resp
 
-class PopupNotification(moksha.wsgi.widgets.api.LiveWidget):
+
+class PopupNotification(LiveWidget):
     topic = "*"
-    onmessage = "$.gritter.add({'title': json.topic, 'text': json.body});"
-    resources = moksha.wsgi.widgets.api.LiveWidget.resources + \
-            tw2.jqplugins.gritter.gritter_resources
+    onmessage = """
+    (function(json){
+        // Use the modname for the title
+        var title = json.topic.split('.')[3];
+
+        var body = '...';
+        $.gritter.add({'title': title, 'text': body});
+    })(json);
+    """
+    resources = LiveWidget.resources + gritter_resources
     backend = "websocket"
 
     # Don't actually produce anything when you call .display() on this widget.
     inline_engine_name = "mako"
     template = ""
 
+
 def make_middleware(app=None, *args, **kw):
-    """ Given an app, return that app wrapped in RaptorizeMiddleware """
     app = FedmsgMiddleware(app, *args, **kw)
     return app
