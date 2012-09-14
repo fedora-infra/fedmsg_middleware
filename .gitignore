@@ -6,3 +6,4 @@
 *.pdf
 dist
 build
+examples/tg2/data

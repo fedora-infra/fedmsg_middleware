@@ -11,6 +11,8 @@ __all__ = ['make_app']
 # make_base_app will wrap the TG2 app with all the middleware it needs. 
 make_base_app = base_config.setup_tg_wsgi_app(load_environment)
 
+from moksha.wsgi.middleware import make_moksha_middleware
+from fedmsg_middleware import make_middleware
 
 def make_app(global_conf, full_stack=True, **app_conf):
     """
@@ -32,8 +34,12 @@ def make_app(global_conf, full_stack=True, **app_conf):
     
    
     """
-    app = make_base_app(global_conf, full_stack=True, **app_conf)
-    
-    # Wrap your base TurboGears 2 application with custom middleware here
-    
+    wrap_app = lambda app: make_moksha_middleware(
+        make_middleware(app),
+        app_conf,
+    )
+    app = make_base_app(global_conf,
+                        full_stack=True,
+                        wrap_app=wrap_app,
+                        **app_conf)
     return app
