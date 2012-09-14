@@ -1,4 +1,0 @@
-recursive-include tg2raptorized/public *
-include tg2raptorized/public/favicon.ico
-recursive-include tg2raptorized/i18n *
-recursive-include tg2raptorized/templates *
