@@ -72,16 +72,29 @@ class FedmsgMiddleware(object):
             soup.html.insert(0, BeautifulSoup.Tag(soup, "head"))
 
 
+        def add_payload(payload):
+            payload = BeautifulSoup.BeautifulSoup(payload)
+            soup.html.body.insert(len(soup.html.body), payload)
+
         from moksha.wsgi.widgets.api import get_moksha_socket
         socket = get_moksha_socket(self.config)
 
-        payload = socket().display()
-        payload = BeautifulSoup.BeautifulSoup(payload)
-        soup.html.body.insert(len(soup.html.body), payload)
+        add_payload(PopupNotification.display())
+        add_payload(socket().display())
 
         resp.body = str(soup.prettify())
         return resp
 
+class PopupNotification(moksha.wsgi.widgets.api.LiveWidget):
+    topic = "*"
+    onmessage = "$.gritter.add({'title': json.topic, 'text': json.body});"
+    resources = moksha.wsgi.widgets.api.LiveWidget.resources + \
+            tw2.jqplugins.gritter.gritter_resources
+    backend = "websocket"
+
+    # Don't actually produce anything when you call .display() on this widget.
+    inline_engine_name = "mako"
+    template = ""
 
 def make_middleware(app=None, *args, **kw):
     """ Given an app, return that app wrapped in RaptorizeMiddleware """
