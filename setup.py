@@ -29,6 +29,10 @@ setup(name='fedmsg_middleware',
           'weberror',
           'BeautifulSoup<4.0a1',
           'moksha.wsgi',
+
+          # TODO -- this only *really* needs fedmsg.config and and fedmsg.text.
+          # Can we not install the whole twisted beast?
+          'fedmsg',
       ],
       entry_points="""
       [paste.filter_app_factory]

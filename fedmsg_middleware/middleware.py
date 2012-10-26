@@ -1,6 +1,10 @@
 
 import BeautifulSoup
 import webob
+import json
+
+import fedmsg.config
+import fedmsg.text as t
 
 from moksha.common.lib.helpers import get_moksha_appconfig
 from moksha.wsgi.widgets.api import get_moksha_socket
@@ -22,16 +26,49 @@ class FedmsgMiddleware(object):
         if not self.config:
             self.config = get_moksha_appconfig()
 
+        # Initialize fedmsg its own config in /etc/fedmsg.d/
+        self.fedmsg_config = fedmsg.config.load_config(None, [])
+        t.make_processors(**self.fedmsg_config)
+
     def __call__(self, environ, start_response):
         """ Process a request. """
 
         req = webob.Request(environ)
+
+        if self.should_respond(req):
+            # Is this an ajax request asking for fedmsg.text information?
+            resp = self.serve_response(req)
+            return resp(environ, start_response)
+
+        # If not, pass the request on to the app that we wrap.
         resp = req.get_response(self.app, catch_exc_info=True)
 
+        # Should we modify their response and inject our notif widget?
         if self.should_inject(req, resp):
             resp = self.inject(resp)
 
         return resp(environ, start_response)
+
+    def should_respond(self, req):
+        """ Determine if this is an AJAX request for fedmsg.text metadata """
+        return req.environ['PATH_INFO'] == "/__fedmsg.text__"
+
+    def serve_response(self, req):
+        """ Translate a fedmsg message into metadata for gritter. """
+        msg = json.loads(req.GET['json'])
+
+        proc = t.msg2processor(msg)
+        metadata = dict(
+            title=t.msg2title(msg, proc, **self.fedmsg_config),
+            text=t.msg2subtitle(msg, proc, **self.fedmsg_config),
+            image=t.msg2secondary_icon(msg, proc, **self.fedmsg_config),
+        )
+
+        resp = webob.Response(
+            content_type='application/json',
+            body=json.dumps(metadata),
+        )
+        return resp
 
     def should_inject(self, req, resp):
         """ Determine if this request should be modified.  Boolean. """
@@ -76,11 +113,12 @@ class PopupNotification(LiveWidget):
     topic = "*"
     onmessage = """
     (function(json){
-        // Use the modname for the title
-        var title = json.topic.split('.')[3];
-
-        var body = '...';
-        $.gritter.add({'title': title, 'text': body});
+        // Make an ajax request to get the fedmsg.text metadata and use that
+        // metadata to make the gritter popup.
+        $.ajax("/__fedmsg.text__", {
+                data: {json: JSON.stringify(json)},
+                success: $.gritter.add,
+        });
     })(json);
     """
     resources = LiveWidget.resources + gritter_resources
