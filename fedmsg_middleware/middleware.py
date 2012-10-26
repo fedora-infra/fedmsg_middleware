@@ -58,10 +58,15 @@ class FedmsgMiddleware(object):
         msg = json.loads(req.GET['json'])
 
         proc = t.msg2processor(msg)
-        metadata = dict(
-            title=t.msg2title(msg, proc, **self.fedmsg_config),
+        text = """<a href="{link}" target="_blank">{text}</a>""".format(
             text=t.msg2subtitle(msg, proc, **self.fedmsg_config),
+            link=t.msg2link(msg, proc, **self.fedmsg_config),
+        )
+        metadata = dict(
+            title="fedmsg -> " + t.msg2title(msg, proc, **self.fedmsg_config),
+            text=text,
             image=t.msg2secondary_icon(msg, proc, **self.fedmsg_config),
+            time=10000,  # 10 seconds until messages disappear
         )
 
         resp = webob.Response(
