@@ -5,7 +5,7 @@ f = open('README.rst')
 long_description = f.read()
 f.close()
 
-version = '0.0.1'
+version = '0.0.2'
 
 setup(name='fedmsg_middleware',
       version=version,
