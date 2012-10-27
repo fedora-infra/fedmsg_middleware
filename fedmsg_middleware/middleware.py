@@ -37,13 +37,20 @@ class FedmsgMiddleware(object):
 
         if self.should_respond(req):
             # Is this an ajax request asking for fedmsg.text information?
+            # If so.. forget everything else and just handle that before anyone
+            # else notices ;o
             resp = self.serve_response(req)
             return resp(environ, start_response)
 
-        # If not, pass the request on to the app that we wrap.
+        # Register our fancy widget with the moksha middleware.
+        PopupNotification.display()
+
+        # Pass the request on to the app that we wrap.
         resp = req.get_response(self.app, catch_exc_info=True)
 
-        # Should we modify their response and inject our notif widget?
+        # Should we modify their response and inject the moksha_socket?
+        # We'll do so in a hopefully delicate manner that
+        # doesn't disturb other javascript (like jQuery).
         if self.should_inject(req, resp):
             resp = self.inject(resp)
 
@@ -83,6 +90,10 @@ class FedmsgMiddleware(object):
 
         content_type = resp.headers.get('Content-Type', 'text/plain').lower()
         if not 'html' in content_type:
+            return False
+
+        # Did the wrapped app already inject a moksha socket?
+        if 'moksha_websocket = ' in resp.body:
             return False
 
         return True
