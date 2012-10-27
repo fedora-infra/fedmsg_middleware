@@ -42,34 +42,16 @@ class FedmsgMiddleware(object):
             resp = self.serve_response(req)
             return resp(environ, start_response)
 
-        # This middleware does its dirty work in one of two ways.  If pre_inject
-        # is False, then it waits for the wrapped app to do all of its work and
-        # render all of its HTML response, then it dirtily injects the HTML and
-        # javascript for the popup notification *and* the moksha socket directly
-        # into the response.
-        # If pre_inject is True, then we assume that the wrapped_app *already
-        # uses* moksha and a live moksha socket in some capacity and will be
-        # providing it on the page.  If we didn't distinguish between these two
-        # cases, then our middleware could accidentally inject a *second* moksha
-        # socket on top of the one already written out by the app.  They fight
-        # at runtime and .. doom.
-        pre_inject = self.config.get('pre_inject', False)
-
-        pre_inject = True # TODO -- remove this
-
-        if pre_inject:
-            # If pre_inject is true, then we don't create our own
-            # moksha_socket.. we only register our fancy popup notification
-            # widget with the moksha middleware.
-            PopupNotification.display()
+        # Register our fancy widget with the moksha middleware.
+        PopupNotification.display()
 
         # Pass the request on to the app that we wrap.
         resp = req.get_response(self.app, catch_exc_info=True)
 
-        # Should we modify their response and inject both our notif widget and
-        # the moksha_socket?  We'll do so in a hopefully delicate manner that
+        # Should we modify their response and inject the moksha_socket?
+        # We'll do so in a hopefully delicate manner that
         # doesn't disturb other javascript (like jQuery).
-        if not pre_inject and self.should_inject(req, resp):
+        if self.should_inject(req, resp):
             resp = self.inject(resp)
 
         return resp(environ, start_response)
@@ -108,6 +90,10 @@ class FedmsgMiddleware(object):
 
         content_type = resp.headers.get('Content-Type', 'text/plain').lower()
         if not 'html' in content_type:
+            return False
+
+        # Did the wrapped app already inject a moksha socket?
+        if 'moksha_websocket = ' in resp.body:
             return False
 
         return True
