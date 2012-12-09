@@ -33,6 +33,7 @@ setup(name='fedmsg_middleware',
           # TODO -- this only *really* needs fedmsg.config and and fedmsg.text.
           # Can we not install the whole twisted beast?
           'fedmsg',
+          'fedmsg.meta.fedora.infrastructure',
       ],
       entry_points="""
       [paste.filter_app_factory]
