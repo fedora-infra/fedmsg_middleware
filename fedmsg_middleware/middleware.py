@@ -4,7 +4,7 @@ import webob
 import json
 
 import fedmsg.config
-import fedmsg.text as t
+import fedmsg.meta as t
 
 from moksha.common.lib.helpers import get_moksha_appconfig
 from moksha.wsgi.widgets.api import get_moksha_socket
